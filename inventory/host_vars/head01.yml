@@ -1,0 +1,6 @@
+---
+# Head node (controller-only, Raspberry Pi 5 16GB).
+board: "Raspberry Pi 5"
+arch: arm64
+cpus: 4
+memory: 16384

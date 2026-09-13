@@ -1,0 +1,115 @@
+---
+# CVMFS client + EESSI repositories.
+#
+# CVMFS is installed from the CERN CVMFS apt repository because Ubuntu noble
+# does not provide cvmfs2 in the default archives.
+
+- name: Install CVMFS prerequisites
+  ansible.builtin.apt:
+    name:
+      - gnupg
+      - ca-certificates
+      - curl
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: cvmfs_prereq_apt
+  retries: 3
+  delay: 5
+  until: cvmfs_prereq_apt is succeeded
+
+- name: Ensure APT keyring directory exists
+  ansible.builtin.file:
+    path: /etc/apt/keyrings
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Download the CERN CVMFS GPG key
+  ansible.builtin.get_url:
+    url: https://cvmfs.cern.ch/deb/lts/key.gpg
+    dest: /etc/apt/keyrings/cvmfs.gpg
+    owner: root
+    group: root
+    mode: "0644"
+    use_proxy: "{{ use_proxy | default(false) | ternary('yes', 'no') }}"
+    proxy_env_variable: http_proxy
+  register: cvmfs_key
+  retries: 3
+  delay: 5
+  until: cvmfs_key is succeeded
+  environment: "{{ proxy_env if use_proxy | default(false) else {} }}"
+
+- name: Add the CERN CVMFS apt repository
+  ansible.builtin.apt_repository:
+    repo: "deb [signed-by=/etc/apt/keyrings/cvmfs.gpg] https://cvmfs.cern.ch/deb/2.11 {{ ansible_distribution_release }} main"
+    filename: cvmfs
+    state: present
+
+- name: Install the CVMFS client
+  ansible.builtin.apt:
+    name: cvmfs2
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: cvmfs_apt
+  retries: 3
+  delay: 5
+  until: cvmfs_apt is succeeded
+
+- name: Add the EESSI CVMFS repositories
+  ansible.builtin.command:
+    cmd: "cvmfs_config add {{ item.name }}"
+    creates: "/etc/cvmfs/repositories.d/{{ item.name }}.local"
+  loop: "{{ cvmfs_repos }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: cvmfs_add
+  changed_when: cvmfs_add.rc == 0
+  environment: "{{ proxy_env if use_proxy | default(false) else {} }}"
+
+- name: Configure CVMFS global settings
+  ansible.builtin.template:
+    src: default.local.j2
+    dest: /etc/cvmfs/default.local
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart cvmfs
+
+- name: Discover CVMFS service units
+  ansible.builtin.shell:
+    cmd: |
+      set -o pipefail
+      find /etc/systemd/system /lib/systemd/system -maxdepth 1 -name 'cvmfs-*.service' -printf '%f\n' | sort -u
+  register: cvmfs_units_raw
+  changed_when: false
+  when: use_proxy | default(false)
+
+- name: Configure CVMFS systemd proxy environment
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item }}.d/proxy.conf"
+    content: |
+      [Service]
+      {% for key, value in proxy_env.items() %}
+      Environment="{{ key }}={{ value }}"
+      {% endfor %}
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ cvmfs_units_raw.stdout_lines | default([]) }}"
+  when: use_proxy | default(false)
+  notify: restart cvmfs
+
+- name: Ensure CVMFS repository services are enabled and running
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      systemctl daemon-reload
+      shopt -s nullglob
+      units=(cvmfs-*.service)
+      if [ ${#units[@]} -gt 0 ]; then
+        systemctl enable --now "${units[@]}"
+      fi
+  changed_when: true

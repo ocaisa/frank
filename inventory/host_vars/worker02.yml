@@ -1,0 +1,11 @@
+---
+# Replace the MAC with the real NIC MAC of worker02.
+worker_ip: 10.0.0.12
+worker_mac: "aa:bb:cc:dd:ee:02"
+board: "Raspberry Pi 5"
+arch: arm64
+cpus: 4
+memory: 8192
+cores: 4
+threads: 1
+has_gpu: false

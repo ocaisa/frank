@@ -1,0 +1,43 @@
+---
+# Head-only DHCP server restricted to eth0.
+# Workers use static MAC -> IP reservations.
+
+- name: Install isc-dhcp-server
+  ansible.builtin.apt:
+    name: isc-dhcp-server
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: dhcp_apt
+  retries: 3
+  delay: 5
+  until: dhcp_apt is succeeded
+
+- name: Restrict DHCP service to the LAN interface
+  ansible.builtin.template:
+    src: isc-dhcp-server.j2
+    dest: /etc/default/isc-dhcp-server
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart isc-dhcp-server
+
+- name: Deploy dhcpd configuration
+  ansible.builtin.template:
+    src: dhcpd.conf.j2
+    dest: /etc/dhcp/dhcpd.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart isc-dhcp-server
+
+- name: Validate dhcpd configuration
+  ansible.builtin.command:
+    cmd: dhcpd -t -cf /etc/dhcp/dhcpd.conf
+  changed_when: false
+
+- name: Ensure isc-dhcp-server is enabled and running
+  ansible.builtin.service:
+    name: isc-dhcp-server
+    state: started
+    enabled: true

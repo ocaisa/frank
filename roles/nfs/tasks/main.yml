@@ -1,0 +1,133 @@
+---
+# NFS server on the head, NFS client on workers.
+#
+# The eessi user's home directory lives on the head's NFS export, so the same
+# home content is visible from workers after /home is mounted.
+
+- name: Install NFS server packages (head)
+  ansible.builtin.apt:
+    name:
+      - nfs-kernel-server
+      - nfs-common
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: nfs_server_apt
+  retries: 3
+  delay: 5
+  until: nfs_server_apt is succeeded
+  when: is_head | default(false)
+
+- name: Install NFS client packages (workers)
+  ansible.builtin.apt:
+    name: nfs-common
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: nfs_client_apt
+  retries: 3
+  delay: 5
+  until: nfs_client_apt is succeeded
+  when: not (is_head | default(false))
+
+- name: Create NFS export directories (head)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ nfs_export_root }}"
+    - "{{ nfs_export_root }}/home"
+    - "{{ eessi_home }}"
+    - /var/spool/slurm
+  when: is_head | default(false)
+
+- name: Ensure /etc/exports includes the exports.d directory (head)
+  ansible.builtin.template:
+    src: exports_main.j2
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: "0644"
+  when: is_head | default(false)
+  notify: reload nfs-kernel-server
+
+- name: Create NFS export configuration (head)
+  ansible.builtin.template:
+    src: exports.j2
+    dest: /etc/exports.d/eessi-cluster
+    owner: root
+    group: root
+    mode: "0644"
+  when: is_head | default(false)
+  notify: reload nfs-kernel-server
+
+- name: Ensure NFS server is enabled and running (head)
+  ansible.builtin.service:
+    name: nfs-kernel-server
+    state: started
+    enabled: true
+  when: is_head | default(false)
+
+- name: Create worker NFS mount points
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - /home
+    - /var/spool/slurm
+  when: not (is_head | default(false))
+
+- name: Mount the eessi home export on workers
+  ansible.builtin.mount:
+    path: /home
+    src: "{{ head_hostname }}:{{ nfs_export_root }}/home"
+    fstype: "{{ nfs_version }}"
+    opts: "defaults,_netdev"
+    state: mounted
+    boot: yes
+  when: not (is_head | default(false))
+
+- name: Mount the shared Slurm spool on workers
+  ansible.builtin.mount:
+    path: /var/spool/slurm
+    src: "{{ head_hostname }}:/var/spool/slurm"
+    fstype: "{{ nfs_version }}"
+    opts: "defaults,_netdev"
+    state: mounted
+    boot: yes
+  when: not (is_head | default(false))
+
+- name: Ensure the eessi group exists
+  ansible.builtin.group:
+    name: "{{ eessi_group }}"
+    state: present
+
+- name: Ensure the eessi user exists
+  ansible.builtin.user:
+    name: "{{ eessi_user }}"
+    group: "{{ eessi_group }}"
+    home: "{{ eessi_home }}"
+    shell: "{{ eessi_shell }}"
+    password: "{{ eessi_password | password_hash('sha512') }}"
+    createhome: true
+    update_password: always
+
+- name: Ensure the eessi user can authenticate with munge
+  ansible.builtin.user:
+    name: "{{ eessi_user }}"
+    groups: munge
+    append: true
+
+- name: Install the eessi shell profile with EESSI activation
+  ansible.builtin.template:
+    src: eessi_bashrc.j2
+    dest: "{{ eessi_home }}/.bashrc"
+    owner: "{{ eessi_user }}"
+    group: "{{ eessi_group }}"
+    mode: "0644"

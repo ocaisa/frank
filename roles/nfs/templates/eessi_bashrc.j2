@@ -1,0 +1,8 @@
+# Ansible managed: eessi shell profile.
+{% for key, value in proxy_env.items() %}
+export {{ key }}="{{ value }}"
+{% endfor %}
+
+if [ -f {{ eessi_cvmfs_root }}/activate ]; then
+  source {{ eessi_cvmfs_root }}/activate
+fi

@@ -1,0 +1,30 @@
+---
+# Slurm + NFS + EESSI cluster on Ubuntu 24.04.
+#
+# Head node: controller (slurmctld), DHCP (eth0 only), squid proxy, CVMFS
+# proxy, NFS server. Head reaches the internet over Wi-Fi and NATs the LAN.
+# Workers: slurmd, NFS client (eessi home + slurm spool), CVMFS client,
+# reach the internet through the head's squid proxy.
+
+- name: Configure head node (controller + infrastructure)
+  hosts: head_node
+  become: true
+  roles:
+    - common
+    - network
+    - squid      # must be available before CVMFS starts fetching repositories
+    - munge
+    - nfs        # server side + eessi user (home lives on the export)
+    - cvmfs
+    - slurm      # slurmctld only
+    - dhcp
+
+- name: Configure worker nodes (compute)
+  hosts: worker_nodes
+  become: true
+  roles:
+    - common
+    - munge
+    - nfs        # client side + eessi user
+    - cvmfs
+    - slurm      # slurmd

@@ -1,0 +1,50 @@
+---
+# Head-only squid proxy.
+#
+# The proxy is exposed on the head's LAN address and on localhost. It is used
+# by workers for APT/CVMFS/EESSI traffic and by the head's interactive/EESSI
+# shell environment via loopback.
+
+- name: Install squid
+  ansible.builtin.apt:
+    name: squid
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: squid_apt
+  retries: 3
+  delay: 5
+  until: squid_apt is succeeded
+
+- name: Ensure the squid cache directory exists
+  ansible.builtin.file:
+    path: "{{ squid_cache_dir }}"
+    state: directory
+    owner: proxy
+    group: proxy
+    mode: "0750"
+
+- name: Deploy squid configuration
+  ansible.builtin.template:
+    src: squid.conf.j2
+    dest: /etc/squid/squid.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart squid
+
+- name: Validate squid configuration
+  ansible.builtin.command:
+    cmd: squid -N -c /etc/squid/squid.conf
+  changed_when: false
+
+- name: Initialize squid cache
+  ansible.builtin.command:
+    cmd: squid -z
+  changed_when: false
+
+- name: Ensure squid is enabled and running
+  ansible.builtin.service:
+    name: squid
+    state: started
+    enabled: true

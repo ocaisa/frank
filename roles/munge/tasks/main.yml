@@ -1,0 +1,98 @@
+---
+# Munge is required by Slurm and ClusterShell/clush.
+#
+# The head node is the canonical key owner. Its /etc/munge/munge.key is
+# published to keys/munge.key on the control node and then copied to workers.
+
+- name: Install munge
+  ansible.builtin.apt:
+    name: munge
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: munge_apt
+  retries: 3
+  delay: 5
+  until: munge_apt is succeeded
+
+- name: Ensure a munge key exists on the head
+  ansible.builtin.command:
+    cmd: munge-key-init
+    creates: /etc/munge/munge.key
+  when: is_head | default(false)
+
+- name: Create the canonical key directory on the control node
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/keys"
+    state: directory
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: "0700"
+  delegate_to: localhost
+  become: false
+  when: is_head | default(false)
+
+- name: Read the munge key from the head
+  ansible.builtin.command:
+    cmd: base64 /etc/munge/munge.key
+  register: munge_key_b64
+  when: is_head | default(false)
+
+- name: Publish the canonical munge key to the control node
+  ansible.builtin.copy:
+    content: "{{ munge_key_b64.stdout | b64decode }}"
+    dest: "{{ playbook_dir }}/keys/munge.key"
+    owner: "{{ ansible_user_id }}"
+    group: "{{ ansible_user_id }}"
+    mode: "0600"
+  delegate_to: localhost
+  become: false
+  when: is_head | default(false)
+
+- name: Ensure the canonical munge key exists on the control node
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/keys/munge.key"
+  delegate_to: localhost
+  become: false
+  register: control_munge_key
+  when: not (is_head | default(false))
+
+- name: Fail if the head munge key has not been published yet
+  ansible.builtin.assert:
+    that:
+      - control_munge_key.stat.exists
+    fail_msg: >-
+      {{ playbook_dir }}/keys/munge.key is missing. Run the head_node play
+      first so the head's munge key can be published before configuring
+      workers.
+  when: not (is_head | default(false))
+
+- name: Deploy the canonical munge key to workers
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/keys/munge.key"
+    dest: /etc/munge/munge.key
+    owner: root
+    group: munge
+    mode: "0400"
+  when: not (is_head | default(false))
+  notify: restart munged
+
+- name: Ensure munged is enabled and running
+  ansible.builtin.service:
+    name: munged
+    state: started
+    enabled: true
+
+- name: Ensure the admin user can authenticate with munge
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: munge
+    append: true
+
+- name: Configure ClusterShell/clush host groups
+  ansible.builtin.template:
+    src: clush.conf.j2
+    dest: /etc/clush.conf
+    owner: root
+    group: root
+    mode: "0644"

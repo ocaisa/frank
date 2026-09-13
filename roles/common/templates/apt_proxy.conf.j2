@@ -1,0 +1,5 @@
+# Ansible managed: APT proxy via the head node's squid instance.
+Acquire::http::Proxy "{{ proxy_url }}";
+Acquire::https::Proxy "{{ proxy_url }}";
+Acquire::ftp::Proxy "";
+Acquire::Retries "3";

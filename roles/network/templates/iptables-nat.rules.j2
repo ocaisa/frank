@@ -1,0 +1,8 @@
+# Ansible managed: NAT from the private LAN to the head's Wi-Fi uplink.
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+-A POSTROUTING -s {{ cluster_net }}/{{ cluster_netmask_prefix }} -o {{ uplink_iface }} -j MASQUERADE
+COMMIT

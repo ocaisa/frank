@@ -1,0 +1,3 @@
+# Ansible managed: explicit GRES definition for Jetson Orin GPU.
+AutoDetect=No
+Name {{ gres_types }} Count {{ gpus | default(1) }}

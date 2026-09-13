@@ -1,0 +1,11 @@
+# Ansible managed: static LAN interface on the head node.
+network:
+  version: 2
+  renderer: {{ lan_netplan_backend | default('NetworkManager') }}
+  ethernets:
+    {{ head_lan_iface }}:
+      dhcp4: false
+      dhcp6: false
+      accept-ra: false
+      addresses:
+        - {{ head_lan_ip }}

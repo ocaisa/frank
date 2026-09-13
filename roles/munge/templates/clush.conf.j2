@@ -1,0 +1,13 @@
+# Ansible managed: ClusterShell/clush host groups.
+[all]
+{% for host in groups['all'] %}
+{{ host }}
+{% endfor %}
+
+[head]
+{{ groups['head_node'][0] }}
+
+[workers]
+{% for host in groups['worker_nodes'] %}
+{{ host }}
+{% endfor %}

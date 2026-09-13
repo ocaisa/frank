@@ -1,0 +1,4 @@
+# Ansible managed: cluster proxy environment for worker shells.
+{% for key, value in proxy_env.items() %}
+export {{ key }}="{{ value }}"
+{% endfor %}

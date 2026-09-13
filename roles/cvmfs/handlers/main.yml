@@ -1,0 +1,12 @@
+---
+- name: restart cvmfs
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      systemctl daemon-reload
+      shopt -s nullglob
+      units=(cvmfs-*.service)
+      if [ ${#units[@]} -gt 0 ]; then
+        systemctl restart "${units[@]}"
+      fi
+  changed_when: true

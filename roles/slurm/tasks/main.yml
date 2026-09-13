@@ -1,0 +1,97 @@
+---
+# Slurm controller (head) and compute nodes (workers).
+#
+# The shared state save location is exported from the head and mounted on the
+# workers before this role runs (see the nfs role).
+
+- name: Ensure the Slurm group has a stable GID
+  ansible.builtin.group:
+    name: "{{ slurm_group }}"
+    gid: "{{ slurm_gid }}"
+    system: true
+    state: present
+
+- name: Ensure the Slurm user has a stable UID
+  ansible.builtin.user:
+    name: "{{ slurm_user }}"
+    uid: "{{ slurm_uid }}"
+    group: "{{ slurm_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+    state: present
+
+- name: Install Slurm packages
+  ansible.builtin.apt:
+    name: "{{ slurm_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: slurm_apt
+  retries: 3
+  delay: 5
+  until: slurm_apt is succeeded
+
+- name: Ensure the Slurm user can authenticate with munge
+  ansible.builtin.user:
+    name: "{{ slurm_user }}"
+    groups: munge
+    append: true
+
+- name: Ensure shared Slurm state directory exists (head)
+  ansible.builtin.file:
+    path: "{{ slurm_state_dir }}"
+    state: directory
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_group }}"
+    mode: "0755"
+  when: is_head | default(false)
+
+- name: Deploy slurm.conf
+  ansible.builtin.template:
+    src: slurm.conf.j2
+    dest: /etc/slurm/slurm.conf
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_group }}"
+    mode: "0640"
+  notify:
+    - restart slurmctld
+    - restart slurmd
+
+- name: Deploy gres.conf for GPU nodes
+  ansible.builtin.template:
+    src: gres.conf.j2
+    dest: /etc/slurm/gres.conf
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_group }}"
+    mode: "0644"
+  when: has_gpu | default(false)
+  notify: restart slurmd
+
+- name: Validate slurmctld configuration (head)
+  ansible.builtin.command:
+    cmd: slurmctld -C
+  register: slurmctld_check
+  changed_when: false
+  when: is_head | default(false)
+
+- name: Validate slurmd configuration (workers)
+  ansible.builtin.command:
+    cmd: slurmd -C
+  register: slurmd_check
+  changed_when: false
+  when: not (is_head | default(false))
+
+- name: Ensure slurmctld is enabled and running (head)
+  ansible.builtin.service:
+    name: slurmctld
+    state: started
+    enabled: true
+  when: is_head | default(false)
+
+- name: Ensure slurmd is enabled and running (workers)
+  ansible.builtin.service:
+    name: slurmd
+    state: started
+    enabled: true
+  when: not (is_head | default(false))

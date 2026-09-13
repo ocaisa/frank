@@ -1,0 +1,12 @@
+# Ansible
+*.retry
+.ansible/
+
+# Secrets / generated cluster material
+keys/
+*.key
+*.pem
+
+# Editor/OS noise
+.*.swp
+.DS_Store

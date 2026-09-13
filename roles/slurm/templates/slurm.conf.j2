@@ -1,0 +1,42 @@
+# Ansible managed: Slurm configuration for {{ cluster_name }}.
+ClusterName={{ cluster_name }}
+SlurmctldHost={{ head_hostname }}
+SlurmctldPort={{ slurmctld_port }}
+SlurmdPort={{ slurmd_port }}
+SlurmUser={{ slurm_user }}
+
+AuthType=auth/munge
+CryptoType=crypto/munge
+StateSaveLocation={{ slurm_state_dir }}
+SlurmdLogFile=/var/log/slurm/slurmd.log
+SlurmctldLogFile=/var/log/slurm/slurmctld.log
+
+SchedulerType=sched/backfill
+SelectType=select/cons_tres
+SelectTypeParameters=CR_Core_Memory
+PriorityType=priority/batch
+ProctrackType=proctrack/linuxproc
+TaskPlugin=task/affinity,task/cgroup
+MpiDefault=none
+ReturnToService=2
+UsePAM=0
+AccountingStorageType=accounting_storage/none
+JobCompType=jobcomp/none
+JobAcctGatherType=jobacct_gather/none
+
+SlurmctldTimeout=120
+SlurmdTimeout=300
+InactiveLimit=0
+MinJobAge=300
+KillWait=30
+Waittime=0
+MaxNodeCount=100
+TreeWidth=1
+GresTypes={{ gres_types }}
+
+PartitionName=compute Nodes=ALL Default=YES MaxTime=INFINITE State=UP
+
+{% for worker in groups['worker_nodes'] %}
+{% set whost = hostvars[worker] %}
+NodeName={{ worker }} Cpus={{ whost.cpus }} RealMemory={{ whost.memory }} CoresPerSocket={{ whost.cores | default(1) }} ThreadsPerCore={{ whost.threads | default(1) }}{% if whost.has_gpu | default(false) %} Gres={{ gres_types }}:{{ whost.gpus | default(1) }}{% endif %}
+{% endfor %}

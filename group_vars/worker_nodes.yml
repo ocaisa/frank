@@ -1,0 +1,8 @@
+---
+# Workers reach the internet only through the head's squid proxy (+ NAT).
+is_head: false
+use_proxy: true
+proxy_url: "http://10.0.0.1:3128"
+apt_use_proxy: true
+eessi_home: /home/eessi
+slurm_packages: [slurmd, slurm-client, munge]

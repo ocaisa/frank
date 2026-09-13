@@ -1,0 +1,87 @@
+---
+# Shared base configuration for every node.
+#
+# This role deliberately uses only low-level modules where possible so it can
+# bootstrap Ansible's apt dependencies before normal apt tasks are used.
+
+- name: Configure APT proxy where required
+  ansible.builtin.template:
+    src: apt_proxy.conf.j2
+    dest: /etc/apt/apt.conf.d/95-cluster-proxy
+    owner: root
+    group: root
+    mode: "0644"
+  when: apt_use_proxy | default(false)
+
+- name: Remove APT proxy configuration where not required
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/95-cluster-proxy
+    state: absent
+  when: not (apt_use_proxy | default(false))
+
+- name: Bootstrap python3-apt if it is missing
+  ansible.builtin.raw:
+    cmd: |
+      set -euo pipefail
+      if ! dpkg-query -W -f='${Status}' python3-apt 2>/dev/null | grep -q 'install ok installed'; then
+        DEBIAN_FRONTEND=noninteractive apt-get update -o Acquire::Retries=3
+        DEBIAN_FRONTEND=noninteractive apt-get install -y python3-apt
+      fi
+  become: true
+  changed_when: false
+
+- name: Install common packages
+  ansible.builtin.apt:
+    name: "{{ common_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: common_apt
+  retries: 3
+  delay: 5
+  until: common_apt is succeeded
+
+- name: Set timezone
+  ansible.builtin.timezone:
+    name: "{{ timezone }}"
+
+- name: Ensure admin user exists in sudo group
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: "{{ admin_groups }}"
+    append: true
+    shell: /bin/bash
+  # The password is intentionally not managed. The account is expected to be
+  # reachable with a passwordless SSH key.
+
+- name: Ensure chrony is enabled and running
+  ansible.builtin.service:
+    name: chrony
+    state: started
+    enabled: true
+
+- name: Add cluster entries to /etc/hosts
+  ansible.builtin.blockinfile:
+    path: /etc/hosts
+    marker: "<!-- {mark} ANSIBLE MANAGED CLUSTER HOSTS -->"
+    block: |
+      {% for entry in lan_hosts %}
+      {{ entry.ip }} {{ entry.name }}
+      {% endfor %}
+    create: true
+    mode: "0644"
+
+- name: Deploy cluster proxy environment
+  ansible.builtin.template:
+    src: proxy_profile.sh.j2
+    dest: /etc/profile.d/90-cluster-proxy.sh
+    owner: root
+    group: root
+    mode: "0644"
+  when: use_proxy | default(false)
+
+- name: Remove cluster proxy environment where not required
+  ansible.builtin.file:
+    path: /etc/profile.d/90-cluster-proxy.sh
+    state: absent
+  when: not (use_proxy | default(false))

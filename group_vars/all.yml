@@ -1,0 +1,39 @@
+---
+# All nodes expose an admin user with sudo and a passwordless SSH key.
+ansible_user: "{{ admin_user }}"
+ansible_python_interpreter: /usr/bin/python3
+ansible_become: true
+ansible_become_method: sudo
+ansible_become_user: root
+
+timezone: Etc/UTC
+
+# Proxy defaults. The head is configured to use its own local squid listener
+# for interactive/EESSI traffic, while workers use the head's LAN address.
+# APT proxying is controlled separately because the head must be able to
+# bootstrap packages before squid is installed.
+proxy_url: "http://127.0.0.1:3128"
+apt_use_proxy: false
+proxy_env:
+  http_proxy: "{{ proxy_url }}"
+  https_proxy: "{{ proxy_url }}"
+  HTTP_PROXY: "{{ proxy_url }}"
+  HTTPS_PROXY: "{{ proxy_url }}"
+  no_proxy: "localhost,127.0.0.1,::1,10.0.0.1,10.0.0.11,10.0.0.12,10.0.0.13,10.0.0.14"
+  NO_PROXY: "localhost,127.0.0.1,::1,10.0.0.1,10.0.0.11,10.0.0.12,10.0.0.13,10.0.0.14"
+
+# Base packages shared by every node.
+# python3-apt is required for Ansible's apt module when pipelining is enabled.
+# chrony keeps time synchronized, which munge and Slurm depend on.
+# clustershell provides the clush command-line client.
+common_packages:
+  - python3
+  - python3-apt
+  - python3-yaml
+  - ca-certificates
+  - curl
+  - rsync
+  - openssh-client
+  - openssh-server
+  - chrony
+  - clustershell

@@ -1,0 +1,50 @@
+---
+# Head-only networking:
+#   - static IP on eth0
+#   - IP forwarding
+#   - NAT from the private LAN to the Wi-Fi uplink
+
+- name: Install networking packages
+  ansible.builtin.apt:
+    name: >-
+      {{ ['iproute2', 'netplan.io', 'iptables-persistent', 'iputils-ping']
+         + (['network-manager'] if lan_netplan_backend | default('NetworkManager') == 'NetworkManager' else []) }}
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  register: network_apt
+  retries: 3
+  delay: 5
+  until: network_apt is succeeded
+
+- name: Configure static LAN interface on the head node
+  ansible.builtin.template:
+    src: 50-lan.yaml.j2
+    dest: /etc/netplan/50-lan.yaml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: apply netplan
+
+- name: Ensure IPv4 forwarding is enabled
+  ansible.builtin.sysctl:
+    name: net.ipv4.ip_forward
+    value: "1"
+    state: present
+    sysctl_set: true
+    reload: true
+
+- name: Configure NAT rules for the private LAN
+  ansible.builtin.template:
+    src: iptables-nat.rules.j2
+    dest: /etc/iptables/rules.v4
+    owner: root
+    group: root
+    mode: "0644"
+  notify: reload netfilter-persistent
+
+- name: Ensure netfilter-persistent is enabled and running
+  ansible.builtin.service:
+    name: netfilter-persistent
+    state: started
+    enabled: true

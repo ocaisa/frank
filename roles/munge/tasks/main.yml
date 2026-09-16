@@ -79,7 +79,7 @@
 
 - name: Ensure munged is enabled and running
   ansible.builtin.service:
-    name: munged
+    name: munge
     state: started
     enabled: true
 

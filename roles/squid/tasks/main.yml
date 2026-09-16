@@ -33,9 +33,14 @@
     mode: "0644"
   notify: restart squid
 
+- name: Ensure squid is stopped before cache initialization
+  ansible.builtin.service:
+    name: squid
+    state: stopped
+
 - name: Validate squid configuration
   ansible.builtin.command:
-    cmd: squid -N -c /etc/squid/squid.conf
+    cmd: squid -k parse -f /etc/squid/squid.conf
   changed_when: false
 
 - name: Initialize squid cache

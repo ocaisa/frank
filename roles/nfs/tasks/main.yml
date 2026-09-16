@@ -54,6 +54,15 @@
   when: is_head | default(false)
   notify: reload nfs-kernel-server
 
+- name: Create NFS exports.d directory (head)
+  ansible.builtin.file:
+    path: /etc/exports.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: is_head | default(false)
+
 - name: Create NFS export configuration (head)
   ansible.builtin.template:
     src: exports.j2

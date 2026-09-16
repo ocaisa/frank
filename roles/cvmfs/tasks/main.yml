@@ -1,8 +1,8 @@
 ---
 # CVMFS client + EESSI repositories.
 #
-# CVMFS is installed from the CERN CVMFS apt repository because Ubuntu noble
-# does not provide cvmfs2 in the default archives.
+# CVMFS is installed via the official CERN cvmfs-release .deb, which
+# configures the CVMFS apt repository for us.
 
 - name: Install CVMFS prerequisites
   ansible.builtin.apt:
@@ -18,38 +18,39 @@
   delay: 5
   until: cvmfs_prereq_apt is succeeded
 
-- name: Ensure APT keyring directory exists
-  ansible.builtin.file:
-    path: /etc/apt/keyrings
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-
-- name: Download the CERN CVMFS GPG key
+- name: Download the CVMFS release package
   ansible.builtin.get_url:
-    url: https://cvmfs.cern.ch/deb/lts/key.gpg
-    dest: /etc/apt/keyrings/cvmfs.gpg
+    url: https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
+    dest: /tmp/cvmfs-release-latest_all.deb
     owner: root
     group: root
     mode: "0644"
     use_proxy: "{{ use_proxy | default(false) | ternary('yes', 'no') }}"
     proxy_env_variable: http_proxy
-  register: cvmfs_key
+  register: cvmfs_release_deb
   retries: 3
   delay: 5
-  until: cvmfs_key is succeeded
+  until: cvmfs_release_deb is succeeded
   environment: "{{ proxy_env if use_proxy | default(false) else {} }}"
 
-- name: Add the CERN CVMFS apt repository
-  ansible.builtin.apt_repository:
-    repo: "deb [signed-by=/etc/apt/keyrings/cvmfs.gpg] https://cvmfs.cern.ch/deb/2.11 {{ ansible_distribution_release }} main"
-    filename: cvmfs
+- name: Install the CVMFS release package
+  ansible.builtin.apt:
+    deb: /tmp/cvmfs-release-latest_all.deb
     state: present
+    cache_valid_time: 3600
+  register: cvmfs_release_install
+  retries: 3
+  delay: 5
+  until: cvmfs_release_install is succeeded
+
+- name: Remove the CVMFS release package
+  ansible.builtin.file:
+    path: /tmp/cvmfs-release-latest_all.deb
+    state: absent
 
 - name: Install the CVMFS client
   ansible.builtin.apt:
-    name: cvmfs2
+    name: cvmfs
     state: present
     update_cache: true
     cache_valid_time: 3600

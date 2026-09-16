@@ -11,8 +11,8 @@ The head has internet access over Wi-Fi and provides NAT, DHCP, and a squid prox
 ## Requirements
 
 - 5 Ubuntu 24.04 ARM64 nodes.
-- SSH access as the `admin` user on all nodes.
-- The `admin` user must have sudo access and a passwordless SSH key installed.
+- SSH access as the `frank` user on all nodes.
+- The `frank` user must have sudo access and a passwordless SSH key installed.
 - Head wired LAN interface: `eth0` (private cluster network).
 - Head Wi-Fi/uplink interface: expected to be `wlan0` (update `uplink_iface` if different).
 - Worker LAN MAC addresses filled in under `inventory/host_vars/worker*.yml`.
@@ -35,7 +35,7 @@ The head has internet access over Wi-Fi and provides NAT, DHCP, and a squid prox
 
 ## First-time preparation
 
-1. Copy your SSH public key to `admin@head01`, `admin@worker01`, etc.
+1. Copy your SSH public key to `frank@head01`, `frank@worker01`, etc.
 2. Replace the placeholder worker MACs in:
    - `inventory/host_vars/worker01.yml`
    - `inventory/host_vars/worker02.yml`

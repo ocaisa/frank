@@ -83,6 +83,8 @@
     cmd: |
       set -o pipefail
       find /etc/systemd/system /lib/systemd/system -maxdepth 1 -name 'cvmfs-*.service' -printf '%f\n' | sort -u
+  args:
+    executable: /bin/bash
   register: cvmfs_units_raw
   changed_when: false
   when: use_proxy | default(false)
@@ -112,4 +114,6 @@
       if [ ${#units[@]} -gt 0 ]; then
         systemctl enable --now "${units[@]}"
       fi
+  args:
+    executable: /bin/bash
   changed_when: true

@@ -1,5 +1,5 @@
 ---
-# All nodes expose an admin user with sudo and a passwordless SSH key.
+# All nodes expose a frank user with sudo and a passwordless SSH key.
 ansible_user: "{{ admin_user }}"
 ansible_python_interpreter: /usr/bin/python3
 ansible_become: true

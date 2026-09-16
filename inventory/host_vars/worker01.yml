@@ -1,7 +1,7 @@
 ---
 # Replace the MAC with the real NIC MAC of worker01 (head must know it for DHCP).
 worker_ip: 10.0.0.11
-worker_mac: "aa:bb:cc:dd:ee:01"
+worker_mac: "88:a2:9e:9a:ba:94"
 board: "Raspberry Pi 5"
 arch: arm64
 cpus: 4

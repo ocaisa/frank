@@ -4,7 +4,7 @@
 # NVML/Slurm GPU autodetection is not assumed, so the GPU is declared explicitly
 # in Slurm as Gres=gpu:1.
 worker_ip: 10.0.0.14
-worker_mac: "aa:bb:cc:dd:ee:04"
+worker_mac: "3c:6d:66:bf:29:f7"
 board: "Jetson Orin Nano"
 arch: arm64
 cpus: 6

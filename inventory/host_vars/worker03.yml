@@ -1,7 +1,7 @@
 ---
 # Replace the MAC with the real NIC MAC of worker03.
 worker_ip: 10.0.0.13
-worker_mac: "aa:bb:cc:dd:ee:03"
+worker_mac: "88:a2:9e:9a:bb:18"
 board: "Raspberry Pi 5"
 arch: arm64
 cpus: 4

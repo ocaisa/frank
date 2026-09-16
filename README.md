@@ -29,7 +29,7 @@ The head has internet access over Wi-Fi and provides NAT, DHCP, and a squid prox
 | Squid proxy | head listens on `127.0.0.1:3128` and `10.0.0.1:3128` |
 | NFS exports | `/export/nfs/home` and `/var/spool/slurm` |
 | EESSI CVMFS | `/cvmfs/software.eessi.io` |
-| EESSI user | `eessi` / `EESSIisgreat` |
+| EESSI user | `eessi` / `EESSI` |
 | Slurm shared spool | `/var/spool/slurm` |
 | Slurm GPU worker | `worker04`, explicit `Gres=gpu:1`, no GPU autodetection |
 
@@ -46,11 +46,30 @@ The head has internet access over Wi-Fi and provides NAT, DHCP, and a squid prox
 
 ## Running the playbook
 
-Run from the project root:
+Run from the project root.
+
+### First run: head node only
+
+Before the head’s LAN IP (`10.0.0.1`) has been assigned, configure only the head node, which you run the playbook on. The inventory is already set up for this: `head01`’s `ansible_host` is `localhost` in `inventory/hosts.yml`.
 
 ```bash
-ansible-playbook site.yml
+ansible-playbook site.yml --limit head_node
 ```
+
+### After the IP is assigned: implement the TODO and run the rest
+
+1. In `inventory/hosts.yml`, change `head01`’s `ansible_host` from `localhost` back to `10.0.0.1` (see the `TODO` comment on that line).
+2. Run the remaining plays:
+
+   ```bash
+   ansible-playbook site.yml --limit worker_nodes
+   ```
+
+   or re-run everything:
+
+   ```bash
+   ansible-playbook site.yml
+   ```
 
 The playbook runs the head node first, then the workers. The head’s squid proxy is installed before CVMFS so that CVMFS can use it immediately.
 
@@ -65,13 +84,13 @@ ssh eessi@head01
 Default password:
 
 ```text
-EESSIisgreat
+EESSI
 ```
 
-The `eessi` shell profile automatically activates EESSI when available:
+The `eessi` shell profile automatically initialises EESSI (lmod) when available:
 
 ```bash
-source /cvmfs/software.eessi.io/activate
+source /cvmfs/software.eessi.io/versions/2026.06/init/lmod/bash
 ```
 
 Proxy environment is configured on all nodes:

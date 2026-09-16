@@ -3,6 +3,6 @@
 export {{ key }}="{{ value }}"
 {% endfor %}
 
-if [ -f {{ eessi_cvmfs_root }}/activate ]; then
-  source {{ eessi_cvmfs_root }}/activate
+if [ -f {{ eessi_init_lmod }} ]; then
+  source {{ eessi_init_lmod }}
 fi

@@ -20,13 +20,14 @@
   when: not (apt_use_proxy | default(false))
 
 - name: Bootstrap python3-apt if it is missing
-  ansible.builtin.raw:
-    cmd: |
-      set -euo pipefail
-      if ! dpkg-query -W -f='${Status}' python3-apt 2>/dev/null | grep -q 'install ok installed'; then
-        DEBIAN_FRONTEND=noninteractive apt-get update -o Acquire::Retries=3
-        DEBIAN_FRONTEND=noninteractive apt-get install -y python3-apt
-      fi
+  ansible.builtin.raw: |
+    bash <<'EOF'
+    set -euo pipefail
+    if ! dpkg-query -W -f='${Status}' python3-apt 2>/dev/null | grep -q 'install ok installed'; then
+      DEBIAN_FRONTEND=noninteractive apt-get update -o Acquire::Retries=3
+      DEBIAN_FRONTEND=noninteractive apt-get install -y python3-apt
+    fi
+    EOF
   become: true
   changed_when: false
 
@@ -45,7 +46,7 @@
   ansible.builtin.timezone:
     name: "{{ timezone }}"
 
-- name: Ensure admin user exists in sudo group
+- name: Ensure frank user exists in sudo group
   ansible.builtin.user:
     name: "{{ admin_user }}"
     groups: "{{ admin_groups }}"

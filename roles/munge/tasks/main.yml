@@ -83,7 +83,7 @@
     state: started
     enabled: true
 
-- name: Ensure the admin user can authenticate with munge
+- name: Ensure the frank user can authenticate with munge
   ansible.builtin.user:
     name: "{{ admin_user }}"
     groups: munge

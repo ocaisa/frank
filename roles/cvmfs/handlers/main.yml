@@ -9,4 +9,6 @@
       if [ ${#units[@]} -gt 0 ]; then
         systemctl restart "${units[@]}"
       fi
+  args:
+    executable: /bin/bash
   changed_when: true

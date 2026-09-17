@@ -46,6 +46,13 @@
   ansible.builtin.timezone:
     name: "{{ timezone }}"
 
+# Workers are named after their inventory key; the head keeps its existing
+# hostname (frank), which is what SlurmctldHost/NodeName reference.
+- name: Set system hostname (workers)
+  ansible.builtin.hostname:
+    name: "{{ inventory_hostname }}"
+  when: not (is_head | default(false))
+
 - name: Ensure frank user exists in sudo group
   ansible.builtin.user:
     name: "{{ admin_user }}"

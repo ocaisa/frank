@@ -40,7 +40,6 @@
   loop:
     - "{{ nfs_export_root }}"
     - "{{ nfs_export_root }}/home"
-    - "{{ eessi_home }}"
     - /var/spool/slurm
   when: is_head | default(false)
 
@@ -132,6 +131,26 @@
     name: "{{ eessi_user }}"
     groups: munge
     append: true
+
+# The user module only sets the home at creation time; point an existing
+# eessi account at the shared NFS home.
+- name: Check the current eessi home directory
+  ansible.builtin.command: getent passwd "{{ eessi_user }}"
+  register: eessi_passwd
+  changed_when: false
+
+- name: Point an existing eessi user at the shared NFS home
+  ansible.builtin.command: usermod -d "{{ eessi_home }}" "{{ eessi_user }}"
+  when: eessi_passwd.stdout.split(':')[5] != eessi_home
+
+- name: Ensure the eessi home directory is owned by eessi (head)
+  ansible.builtin.file:
+    path: "{{ eessi_home }}"
+    state: directory
+    owner: "{{ eessi_user }}"
+    group: "{{ eessi_group }}"
+    mode: "0750"
+  when: is_head | default(false)
 
 - name: Install the eessi shell profile with EESSI activation
   ansible.builtin.template:

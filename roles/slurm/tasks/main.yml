@@ -53,7 +53,7 @@
     dest: /etc/slurm/slurm.conf
     owner: "{{ slurm_user }}"
     group: "{{ slurm_group }}"
-    mode: "0640"
+    mode: "0644"
   notify:
     - restart slurmctld
     - restart slurmd

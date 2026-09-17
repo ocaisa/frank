@@ -1,3 +1,5 @@
 # Ansible managed: NFS exports for the EESSI/Slurm cluster.
-{{ nfs_export_root }}/home {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }})
-/var/spool/slurm {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }})
+# Explicit fsids are required so NFSv4 clients can mount these subdirectory
+# exports by their full path (without them v4 grafts them by basename only).
+{{ nfs_export_root }}/home {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }},fsid=1)
+/var/spool/slurm {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }},fsid=2)

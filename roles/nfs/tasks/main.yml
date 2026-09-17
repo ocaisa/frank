@@ -43,40 +43,25 @@
     - /var/spool/slurm
   when: is_head | default(false)
 
-- name: Ensure /etc/exports includes the exports.d directory (head)
+- name: Create the NFS export configuration (head)
   ansible.builtin.template:
-    src: exports_main.j2
+    src: exports.j2
     dest: /etc/exports
     owner: root
     group: root
     mode: "0644"
   when: is_head | default(false)
-  notify: reload nfs-kernel-server
-
-- name: Create NFS exports.d directory (head)
-  ansible.builtin.file:
-    path: /etc/exports.d
-    state: directory
-    owner: root
-    group: root
-    mode: "0755"
-  when: is_head | default(false)
-
-- name: Create NFS export configuration (head)
-  ansible.builtin.template:
-    src: exports.j2
-    dest: /etc/exports.d/eessi-cluster
-    owner: root
-    group: root
-    mode: "0644"
-  when: is_head | default(false)
-  notify: reload nfs-kernel-server
 
 - name: Ensure NFS server is enabled and running (head)
   ansible.builtin.service:
     name: nfs-kernel-server
     state: started
     enabled: true
+  when: is_head | default(false)
+
+- name: Load the NFS exports into the running kernel (head)
+  ansible.builtin.command: exportfs -ra
+  changed_when: false
   when: is_head | default(false)
 
 - name: Create worker NFS mount points

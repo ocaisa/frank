@@ -23,6 +23,7 @@ UsePAM=0
 AccountingStorageType=accounting_storage/none
 JobCompType=jobcomp/none
 JobAcctGatherType=jobacct_gather/none
+MailProg=/usr/bin/true
 
 SlurmctldTimeout=120
 SlurmdTimeout=300
@@ -34,10 +35,11 @@ MaxNodeCount=100
 TreeWidth=1
 GresTypes={{ gres_types }}
 
-PartitionName=compute Nodes=ALL Default=YES MaxTime=INFINITE State=UP
+PartitionName=compute Nodes={{ groups['worker_nodes'] | join(',') }} Default=YES MaxTime=INFINITE State=UP
 
 {% for worker in groups['worker_nodes'] %}
 {% set whost = hostvars[worker] %}
 {% set gres = (' Gres=' ~ gres_types ~ ':' ~ (whost.gpus | default(1))) if whost.has_gpu | default(false) else '' %}
 NodeName={{ worker }} Cpus={{ whost.cpus }} RealMemory={{ whost.memory }} CoresPerSocket={{ whost.cores | default(1) }} ThreadsPerCore={{ whost.threads | default(1) }}{{ gres }}
 {% endfor %}
+NodeName=head01 Cpus={{ head_cpus }} RealMemory={{ head_memory }} CoresPerSocket={{ head_cores | default(1) }} ThreadsPerCore={{ head_threads | default(1) }}

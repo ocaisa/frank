@@ -42,4 +42,4 @@ PartitionName=compute Nodes={{ groups['worker_nodes'] | join(',') }} Default=YES
 {% set gres = (' Gres=' ~ gres_types ~ ':' ~ (whost.gpus | default(1))) if whost.has_gpu | default(false) else '' %}
 NodeName={{ worker }} Cpus={{ whost.cpus }} RealMemory={{ whost.memory }} CoresPerSocket={{ whost.cores | default(1) }} ThreadsPerCore={{ whost.threads | default(1) }}{{ gres }}
 {% endfor %}
-NodeName=head01 Cpus={{ head_cpus }} RealMemory={{ head_memory }} CoresPerSocket={{ head_cores | default(1) }} ThreadsPerCore={{ head_threads | default(1) }}
+NodeName={{ head_hostname }} Cpus={{ head_cpus }} RealMemory={{ head_memory }} CoresPerSocket={{ head_cores | default(1) }} ThreadsPerCore={{ head_threads | default(1) }}

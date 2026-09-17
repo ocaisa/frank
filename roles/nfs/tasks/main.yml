@@ -2,7 +2,7 @@
 # NFS server on the head, NFS client on workers.
 #
 # The eessi user's home directory lives on the head's NFS export, so the same
-# home content is visible from workers after /home is mounted.
+# home content is visible from workers after /nfs/home is mounted.
 
 - name: Install NFS server packages (head)
   ansible.builtin.apt:
@@ -78,13 +78,13 @@
     group: root
     mode: "0755"
   loop:
-    - /home
+    - /nfs/home
     - /var/spool/slurm
   when: not (is_head | default(false))
 
 - name: Mount the eessi home export on workers
   ansible.builtin.mount:
-    path: /home
+    path: /nfs/home
     src: "{{ head_hostname }}:{{ nfs_export_root }}/home"
     fstype: "{{ nfs_version }}"
     opts: "defaults,_netdev"
@@ -106,11 +106,13 @@
   ansible.builtin.group:
     name: "{{ eessi_group }}"
     state: present
+    gid: "{{ eessi_gid }}"
 
 - name: Ensure the eessi user exists
   ansible.builtin.user:
     name: "{{ eessi_user }}"
     group: "{{ eessi_group }}"
+    uid: "{{ eessi_uid }}"
     home: "{{ eessi_home }}"
     shell: "{{ eessi_shell }}"
     password: "{{ eessi_password | password_hash('sha512') }}"
@@ -141,6 +143,16 @@
     owner: "{{ eessi_user }}"
     group: "{{ eessi_group }}"
     mode: "0750"
+  when: is_head | default(false)
+
+# Re-apply ownership recursively in case the eessi UID changed since the home
+# was first populated (the user module does not chown existing files).
+- name: Ensure the eessi home content is owned by eessi (head)
+  ansible.builtin.file:
+    path: "{{ eessi_home }}"
+    owner: "{{ eessi_user }}"
+    group: "{{ eessi_group }}"
+    recurse: true
   when: is_head | default(false)
 
 - name: Install the eessi shell profile with EESSI activation

@@ -84,7 +84,7 @@
   ansible.builtin.copy:
     content: "{{ munge_key_staged.content | b64decode }}"
     dest: /etc/munge/munge.key
-    owner: root
+    owner: munge
     group: munge
     mode: "0400"
   when: not (is_head | default(false))

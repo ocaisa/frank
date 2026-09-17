@@ -1,8 +1,6 @@
 ---
 # Replace the MAC with the real NIC MAC of worker04.
-# This node is a Jetson Orin Nano 8GB. nvidia-smi is expected to work, but
-# NVML/Slurm GPU autodetection is not assumed, so the GPU is declared explicitly
-# in Slurm as Gres=gpu:1.
+# This node is a Jetson Orin Nano 8GB. nvidia-smi works and NVML/GPU autodetection is enabled.
 worker_ip: 10.0.0.14
 worker_mac: "aa:bb:cc:dd:ee:04"
 board: "Jetson Orin Nano"

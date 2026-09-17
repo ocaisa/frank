@@ -68,6 +68,26 @@
   when: has_gpu | default(false)
   notify: restart slurmd
 
+- name: Provide slurmctld options environment file (head)
+  ansible.builtin.copy:
+    dest: /etc/default/slurmctld
+    content: 'SLURMCTLD_OPTIONS=""\n'
+    owner: root
+    group: root
+    mode: "0644"
+  when: is_head | default(false)
+  notify: restart slurmctld
+
+- name: Provide slurmd options environment file (workers)
+  ansible.builtin.copy:
+    dest: /etc/default/slurmd
+    content: 'SLURMD_OPTIONS=""\n'
+    owner: root
+    group: root
+    mode: "0644"
+  when: not (is_head | default(false))
+  notify: restart slurmd
+
 - name: Ensure slurmctld is enabled and running (head)
   ansible.builtin.service:
     name: slurmctld

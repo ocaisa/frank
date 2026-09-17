@@ -38,5 +38,6 @@ PartitionName=compute Nodes=ALL Default=YES MaxTime=INFINITE State=UP
 
 {% for worker in groups['worker_nodes'] %}
 {% set whost = hostvars[worker] %}
-NodeName={{ worker }} Cpus={{ whost.cpus }} RealMemory={{ whost.memory }} CoresPerSocket={{ whost.cores | default(1) }} ThreadsPerCore={{ whost.threads | default(1) }}{% if whost.has_gpu | default(false) %} Gres={{ gres_types }}:{{ whost.gpus | default(1) }}{% endif %}
+{% set gres = (' Gres=' ~ gres_types ~ ':' ~ (whost.gpus | default(1))) if whost.has_gpu | default(false) else '' %}
+NodeName={{ worker }} Cpus={{ whost.cpus }} RealMemory={{ whost.memory }} CoresPerSocket={{ whost.cores | default(1) }} ThreadsPerCore={{ whost.threads | default(1) }}{{ gres }}
 {% endfor %}

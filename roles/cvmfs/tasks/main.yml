@@ -26,7 +26,6 @@
     group: root
     mode: "0644"
     use_proxy: "{{ use_proxy | default(false) | ternary('yes', 'no') }}"
-    proxy_env_variable: http_proxy
   register: cvmfs_release_deb
   retries: 3
   delay: 5
@@ -48,6 +47,39 @@
     path: /tmp/cvmfs-release-latest_all.deb
     state: absent
 
+- name: Download the EESSI CVMFS configuration package
+  ansible.builtin.get_url:
+    url: https://github.com/EESSI/filesystem-layer/releases/download/latest/cvmfs-config-eessi_latest_all.deb
+    dest: /tmp/eessi-cvmfs-release-latest_all.deb
+    owner: root
+    group: root
+    mode: "0644"
+    use_proxy: "{{ use_proxy | default(false) | ternary('yes', 'no') }}"
+  register: eessi_release_deb
+  retries: 3
+  delay: 5
+  until: eessi_release_deb is succeeded
+  environment: "{{ proxy_env if use_proxy | default(false) else {} }}"
+
+- name: Install the EESSI config package
+  ansible.builtin.apt:
+    deb: /tmp/eessi-cvmfs-release-latest_all.deb
+    state: present
+    cache_valid_time: 3600
+  register: eessi_release_install
+  retries: 3
+  delay: 5
+  until: eessi_release_install is succeeded
+
+- name: Remove the EESSI config package
+  ansible.builtin.file:
+    path: /tmp/eessi-cvmfs-release-latest_all.deb
+    state: absent
+
+- name: Update APT cache
+  ansible.builtin.apt:
+    update_cache: true
+
 - name: Install the CVMFS client
   ansible.builtin.apt:
     name: cvmfs
@@ -59,17 +91,6 @@
   delay: 5
   until: cvmfs_apt is succeeded
 
-- name: Add the EESSI CVMFS repositories
-  ansible.builtin.command:
-    cmd: "cvmfs_config add {{ item.name }}"
-    creates: "/etc/cvmfs/repositories.d/{{ item.name }}.local"
-  loop: "{{ cvmfs_repos }}"
-  loop_control:
-    label: "{{ item.name }}"
-  register: cvmfs_add
-  changed_when: cvmfs_add.rc == 0
-  environment: "{{ proxy_env if use_proxy | default(false) else {} }}"
-
 - name: Configure CVMFS global settings
   ansible.builtin.template:
     src: default.local.j2
@@ -79,42 +100,14 @@
     mode: "0644"
   notify: restart cvmfs
 
-- name: Discover CVMFS service units
-  ansible.builtin.shell:
-    cmd: |
-      set -o pipefail
-      find /etc/systemd/system /lib/systemd/system -maxdepth 1 -name 'cvmfs-*.service' -printf '%f\n' | sort -u
-  args:
-    executable: /bin/bash
-  register: cvmfs_units_raw
+- name: Set up CVMFS
+  ansible.builtin.command:
+    cmd: cvmfs_config setup
   changed_when: false
-  when: use_proxy | default(false)
 
-- name: Configure CVMFS systemd proxy environment
-  ansible.builtin.copy:
-    dest: "/etc/systemd/system/{{ item }}.d/proxy.conf"
-    content: |
-      [Service]
-      {% for key, value in proxy_env.items() %}
-      Environment="{{ key }}={{ value }}"
-      {% endfor %}
-    owner: root
-    group: root
-    mode: "0644"
-  loop: "{{ cvmfs_units_raw.stdout_lines | default([]) }}"
-  when: use_proxy | default(false)
-  notify: restart cvmfs
+- name: Probe EESSI CVMFS repository
+  ansible.builtin.command:
+    cmd: cvmfs_config probe software.eessi.io
+  register: cvmfs_probe
+  changed_when: false
 
-- name: Ensure CVMFS repository services are enabled and running
-  ansible.builtin.shell:
-    cmd: |
-      set -euo pipefail
-      systemctl daemon-reload
-      shopt -s nullglob
-      units=(cvmfs-*.service)
-      if [ ${#units[@]} -gt 0 ]; then
-        systemctl enable --now "${units[@]}"
-      fi
-  args:
-    executable: /bin/bash
-  changed_when: true

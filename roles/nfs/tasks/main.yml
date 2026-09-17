@@ -64,13 +64,13 @@
   changed_when: false
   when: is_head | default(false)
 
+# Pure existence check: these paths may already be stale NFS mounts from an
+# earlier run, and chown/chmod on a still-ro export fails with EROFS. The
+# mount point's own ownership is irrelevant - the export covers it.
 - name: Create worker NFS mount points
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
-    owner: root
-    group: root
-    mode: "0755"
   loop:
     - /nfs/home
     - /var/spool/slurm

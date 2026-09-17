@@ -1,3 +1,6 @@
-# Ansible managed: explicit GRES definition for Jetson Orin GPU.
-AutoDetect=No
-Name {{ gres_types }} Count {{ gpus | default(1) }}
+# Ansible managed: explicit GRES definition for the Jetson Orin GPU.
+# Native AutoDetect (nvml/nvidia) relies on NVML, which Tegra (Jetson) does
+# not support, so the GPU must be declared explicitly. File= is required for
+# gpu-type GRES; /dev/nvgpu is the Tegra GPU device node.
+AutoDetect=on
+Name={{ gres_types }} File={{ gres_file | default('/dev/nvgpu') }} Count={{ gpus | default(1) }}

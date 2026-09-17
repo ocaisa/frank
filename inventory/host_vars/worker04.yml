@@ -13,3 +13,4 @@ cores: 6
 threads: 1
 has_gpu: true
 gpus: 1
+gres_file: /dev/nvgpu

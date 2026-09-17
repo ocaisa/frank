@@ -119,7 +119,7 @@ ls /cvmfs/software.eessi.io
 curl -x http://10.0.0.1:3128 https://example.com
 ```
 
-For the Jetson GPU, `nvidia-smi` is expected to work. Slurm GPU autodetection is disabled because NVML support is not assumed:
+For the Jetson GPU, `nvidia-smi` works and Slurm GPU autodetection is enabled via NVML.
 
 ```bash
 ssh eessi@worker04

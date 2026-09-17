@@ -71,6 +71,15 @@
   register: munge_key_staged
   when: not (is_head | default(false))
 
+- name: Ensure /etc/munge directory exists on workers
+  ansible.builtin.file:
+    path: /etc/munge
+    state: directory
+    owner: root
+    group: munge
+    mode: "0750"
+  when: not (is_head | default(false))
+
 - name: Deploy the canonical munge key to workers
   ansible.builtin.copy:
     content: "{{ munge_key_staged.content | b64decode }}"
@@ -92,6 +101,12 @@
     name: "{{ admin_user }}"
     groups: munge
     append: true
+
+- name: Verify munge works on this node
+  ansible.builtin.shell: "munge -n | unmunge"
+  register: munge_test
+  changed_when: false
+  failed_when: munge_test.rc != 0
 
 - name: Configure ClusterShell/clush host groups
   ansible.builtin.template:

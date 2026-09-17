@@ -96,6 +96,25 @@
     boot: yes
   when: not (is_head | default(false))
 
+# Stop a worker here instead of plowing on with a missing mount: everything
+# below (shared home, eessi user, Slurm spool) depends on these mounts.
+- name: Verify the shared eessi home is reachable (workers)
+  ansible.builtin.stat:
+    path: "{{ eessi_home }}"
+  register: worker_eessi_home
+  when: not (is_head | default(false))
+
+- name: Fail if the eessi home is not visible through NFS (workers)
+  ansible.builtin.assert:
+    that:
+      - worker_eessi_home.stat.exists
+    fail_msg: >-
+      {{ eessi_home }} is not visible on this worker. The NFS mount of
+      {{ head_hostname }}:{{ nfs_export_root }}/home at /nfs/home is missing
+      or stale; check the head's export table (exportfs -v) and the worker's
+      nfs client before re-running.
+  when: not (is_head | default(false))
+
 # The head is canonical for the eessi account's UID/GID (NFS with
 # no_root_squash checks raw UIDs). The head publishes them to the control
 # node and workers adopt them, mirroring the munge key flow.
@@ -137,7 +156,10 @@
     state: present
     gid: "{{ eessi_gid | default(omit) }}"
 
-- name: Ensure the eessi user exists
+# Head: the home is a local directory (it is the export root). Workers must
+# NOT create it locally: the shared home arrives via the NFS mount (verified
+# above), and a local directory would silently diverge from the head's.
+- name: Ensure the eessi user exists (head)
   ansible.builtin.user:
     name: "{{ eessi_user }}"
     group: "{{ eessi_group }}"
@@ -147,6 +169,18 @@
     password: "{{ eessi_password | password_hash('sha512') }}"
     createhome: true
     update_password: always
+  when: is_head | default(false)
+
+- name: Ensure the eessi user exists (workers)
+  ansible.builtin.user:
+    name: "{{ eessi_user }}"
+    group: "{{ eessi_group }}"
+    uid: "{{ eessi_uid | default(omit) }}"
+    home: "{{ eessi_home }}"
+    shell: "{{ eessi_shell }}"
+    password: "{{ eessi_password | password_hash('sha512') }}"
+    update_password: always
+  when: not (is_head | default(false))
 
 - name: Ensure the eessi user can authenticate with munge
   ansible.builtin.user:
@@ -193,10 +227,14 @@
     recurse: true
   when: is_head | default(false)
 
-- name: Install the eessi shell profile with EESSI activation
+# The head is the only writer: the home is shared over NFS, so workers pick
+# the file up from the mount. Writing it back through NFS races the head and
+# fails with permission denied when the running export squashes root.
+- name: Install the eessi shell profile with EESSI activation (head)
   ansible.builtin.template:
     src: eessi_bashrc.j2
     dest: "{{ eessi_home }}/.bashrc"
     owner: "{{ eessi_user }}"
     group: "{{ eessi_group }}"
     mode: "0644"
+  when: is_head | default(false)

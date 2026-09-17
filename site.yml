@@ -9,6 +9,7 @@
 - name: Configure head node (controller + infrastructure)
   hosts: head_node
   become: true
+  any_errors_fatal: true
   roles:
     - common
     - network
@@ -22,6 +23,7 @@
 - name: Configure worker nodes (compute)
   hosts: worker_nodes
   become: true
+  any_errors_fatal: true
   roles:
     - common
     - munge

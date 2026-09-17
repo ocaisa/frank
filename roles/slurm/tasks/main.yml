@@ -47,16 +47,25 @@
     mode: "0755"
   when: is_head | default(false)
 
-- name: Deploy slurm.conf
+- name: Deploy slurm.conf (head)
   ansible.builtin.template:
     src: slurm.conf.j2
     dest: /etc/slurm/slurm.conf
     owner: "{{ slurm_user }}"
     group: "{{ slurm_group }}"
     mode: "0644"
-  notify:
-    - restart slurmctld
-    - restart slurmd
+  when: is_head | default(false)
+  notify: restart slurmctld
+
+- name: Deploy slurm.conf (workers)
+  ansible.builtin.template:
+    src: slurm.conf.j2
+    dest: /etc/slurm/slurm.conf
+    owner: "{{ slurm_user }}"
+    group: "{{ slurm_group }}"
+    mode: "0644"
+  when: not (is_head | default(false))
+  notify: restart slurmd
 
 - name: Deploy gres.conf for GPU nodes
   ansible.builtin.template:
@@ -65,7 +74,7 @@
     owner: "{{ slurm_user }}"
     group: "{{ slurm_group }}"
     mode: "0644"
-  when: has_gpu | default(false)
+  when: (has_gpu | default(false)) and (not (is_head | default(false)))
   notify: restart slurmd
 
 - name: Provide slurmctld options environment file (head)

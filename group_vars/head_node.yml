@@ -4,6 +4,6 @@ is_head: true
 use_proxy: true
 proxy_url: "http://127.0.0.1:3128"
 apt_use_proxy: false           # bootstrap head packages directly, not via squid
-eessi_home: /export/nfs/home/eessi
+eessi_home: /nfs/home/eessi
 slurm_packages: [slurmctld, slurm-client, munge]
 lan_netplan_backend: NetworkManager   # match the head's Wi-Fi backend

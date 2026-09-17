@@ -68,20 +68,6 @@
   when: has_gpu | default(false)
   notify: restart slurmd
 
-- name: Validate slurmctld configuration (head)
-  ansible.builtin.command:
-    cmd: slurmctld -C
-  register: slurmctld_check
-  changed_when: false
-  when: is_head | default(false)
-
-- name: Validate slurmd configuration (workers)
-  ansible.builtin.command:
-    cmd: slurmd -C
-  register: slurmd_check
-  changed_when: false
-  when: not (is_head | default(false))
-
 - name: Ensure slurmctld is enabled and running (head)
   ansible.builtin.service:
     name: slurmctld

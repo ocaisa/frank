@@ -102,17 +102,52 @@
     boot: yes
   when: not (is_head | default(false))
 
+# The head is canonical for the eessi account's UID/GID (NFS with
+# no_root_squash checks raw UIDs). The head publishes them to the control
+# node and workers adopt them, mirroring the munge key flow.
+- name: Ensure the canonical eessi IDs exist on the control node
+  ansible.builtin.stat:
+    path: "{{ playbook_dir }}/keys/eessi.ids"
+  delegate_to: localhost
+  become: false
+  register: control_eessi_ids
+  when: not (is_head | default(false))
+
+- name: Fail if the head eessi IDs have not been published yet
+  ansible.builtin.assert:
+    that:
+      - control_eessi_ids.stat.exists
+    fail_msg: >-
+      {{ playbook_dir }}/keys/eessi.ids is missing. Run the head_node play
+      first so the head's eessi UID/GID can be published before configuring
+      workers.
+  when: not (is_head | default(false))
+
+- name: Read the head's eessi UID/GID from the control node
+  ansible.builtin.slurp:
+    src: "{{ playbook_dir }}/keys/eessi.ids"
+  delegate_to: localhost
+  become: true
+  register: eessi_ids_staged
+  when: not (is_head | default(false))
+
+- name: Adopt the head's eessi UID/GID
+  ansible.builtin.set_fact:
+    eessi_uid: "{{ (eessi_ids_staged.content | b64decode).split()[0] | int }}"
+    eessi_gid: "{{ (eessi_ids_staged.content | b64decode).split()[1] | int }}"
+  when: not (is_head | default(false))
+
 - name: Ensure the eessi group exists
   ansible.builtin.group:
     name: "{{ eessi_group }}"
     state: present
-    gid: "{{ eessi_gid }}"
+    gid: "{{ eessi_gid | default(omit) }}"
 
 - name: Ensure the eessi user exists
   ansible.builtin.user:
     name: "{{ eessi_user }}"
     group: "{{ eessi_group }}"
-    uid: "{{ eessi_uid }}"
+    uid: "{{ eessi_uid | default(omit) }}"
     home: "{{ eessi_home }}"
     shell: "{{ eessi_shell }}"
     password: "{{ eessi_password | password_hash('sha512') }}"
@@ -131,6 +166,15 @@
   ansible.builtin.command: getent passwd "{{ eessi_user }}"
   register: eessi_passwd
   changed_when: false
+
+- name: Publish the head's eessi UID/GID to the control node
+  ansible.builtin.copy:
+    content: "{{ eessi_passwd.stdout.split(':')[2] }} {{ eessi_passwd.stdout.split(':')[3] }}\n"
+    dest: "{{ playbook_dir }}/keys/eessi.ids"
+    mode: "0644"
+  delegate_to: localhost
+  become: false
+  when: is_head | default(false)
 
 - name: Point an existing eessi user at the shared NFS home
   ansible.builtin.command: usermod -d "{{ eessi_home }}" "{{ eessi_user }}"

@@ -8,11 +8,6 @@ ansible_become_user: root
 
 timezone: Etc/UTC
 
-# Fixed UID/GID for the shared eessi account so ownership is identical on the
-# head and all workers (NFS with no_root_squash checks raw UIDs).
-eessi_uid: 1050
-eessi_gid: 1050
-
 # Proxy defaults. The head is configured to use its own local squid listener
 # for interactive/EESSI traffic, while workers use the head's LAN address.
 # APT proxying is controlled separately because the head must be able to

@@ -81,7 +81,7 @@
     path: /nfs/home
     src: "{{ head_hostname }}:{{ nfs_export_root }}/home"
     fstype: "{{ nfs_version }}"
-    opts: "defaults,_netdev"
+    opts: "defaults,_netdev,rw"
     state: mounted
     boot: yes
   when: not (is_head | default(false))
@@ -91,7 +91,7 @@
     path: /var/spool/slurm
     src: "{{ head_hostname }}:/var/spool/slurm"
     fstype: "{{ nfs_version }}"
-    opts: "defaults,_netdev"
+    opts: "defaults,_netdev,rw"
     state: mounted
     boot: yes
   when: not (is_head | default(false))

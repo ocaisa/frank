@@ -1,7 +1,13 @@
 # Ansible managed: eessi shell profile.
-{% for key, value in proxy_env.items() %}
-export {{ key }}="{{ value }}"
-{% endfor %}
+# This file is shared over NFS (the home lives on the head), so it must use
+# the proxy address reachable from every node - the head's LAN IP. The head's
+# loopback proxy_url would point a worker at its own loopback.
+export http_proxy="{{ cluster_proxy_url }}"
+export https_proxy="{{ cluster_proxy_url }}"
+export HTTP_PROXY="{{ cluster_proxy_url }}"
+export HTTPS_PROXY="{{ cluster_proxy_url }}"
+export no_proxy="{{ proxy_env.no_proxy }}"
+export NO_PROXY="{{ proxy_env.NO_PROXY }}"
 
 if [ -f {{ eessi_init_lmod }} ]; then
   source {{ eessi_init_lmod }}

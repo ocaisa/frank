@@ -14,6 +14,10 @@ timezone: Etc/UTC
 # bootstrap packages before squid is installed.
 proxy_url: "http://127.0.0.1:3128"
 apt_use_proxy: false
+# Single proxy URL reachable from EVERY node: the head's LAN listener. Used for
+# anything written to a file shared over NFS (the eessi .bashrc), where the
+# head's loopback proxy_url would be wrong on workers.
+cluster_proxy_url: "http://{{ squid_listen }}:{{ squid_port }}"
 proxy_env:
   http_proxy: "{{ proxy_url }}"
   https_proxy: "{{ proxy_url }}"

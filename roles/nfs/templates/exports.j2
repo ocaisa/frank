@@ -1,8 +1,7 @@
 # Ansible managed: NFS exports for the EESSI/Slurm cluster.
-# NFSv4 requires a distinguished pseudo-root export (fsid=0, i.e. fsid=root);
-# without one the server denies every v4 mount. The read-only / export provides
-# that root. The rw subdirectory exports below carry their own numeric fsids so
-# v4 grafts them into the tree at their full paths instead of by basename.
-/ {{ cluster_net }}/{{ cluster_netmask_prefix }}(ro,sync,no_subtree_check,fsid=0)
-{{ nfs_export_root }}/home {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }},fsid=1)
+# NFSv4 needs a single pseudo-root (fsid=0). We make the export root (/nfs) the
+# pseudo-root and export it read-write, so every path under it (e.g. /home) is
+# writable. /var/spool/slurm is deliberately NOT under /nfs, so it stays local
+# and unique to each node.
+{{ nfs_export_root }} {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }},fsid=0)
 

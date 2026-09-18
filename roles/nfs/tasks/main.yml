@@ -79,7 +79,7 @@
 - name: Mount the eessi home export on workers
   ansible.builtin.mount:
     path: /nfs/home
-    src: "{{ head_hostname }}:{{ nfs_export_root }}/home"
+    src: "{{ head_hostname }}:/home"
     fstype: "{{ nfs_version }}"
     opts: "defaults,_netdev,rw"
     state: mounted
@@ -88,7 +88,7 @@
 
 
 # Stop a worker here instead of plowing on with a missing mount: everything
-# below (shared home, eessi user, Slurm spool) depends on these mounts.
+# below (shared home, eessi user) depends on this mount.
 - name: Verify the shared eessi home is reachable (workers)
   ansible.builtin.stat:
     path: "{{ eessi_home }}"
@@ -101,9 +101,9 @@
       - worker_eessi_home.stat.exists
     fail_msg: >-
       {{ eessi_home }} is not visible on this worker. The NFS mount of
-      {{ head_hostname }}:{{ nfs_export_root }}/home at /nfs/home is missing
-      or stale; check the head's export table (exportfs -v) and the worker's
-      nfs client before re-running.
+      {{ head_hostname }}:/home at /nfs/home is missing or stale; check the
+      head's export table (exportfs -v) and the worker's nfs client before
+      re-running.
   when: not (is_head | default(false))
 
 # The head is canonical for the eessi account's UID/GID (NFS with

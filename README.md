@@ -27,10 +27,10 @@ The head has internet access over Wi-Fi and provides NAT, DHCP, and a squid prox
 | Worker IPs | `10.0.0.11`–`10.0.0.14` |
 | DHCP | head `eth0` only, static MAC reservations |
 | Squid proxy | head listens on `127.0.0.1:3128` and `10.0.0.1:3128` |
-| NFS exports | `/nfs/home` and `/var/spool/slurm` |
+| NFS exports | `/nfs` (rw pseudo-root, `fsid=0`); eessi home at `/nfs/home` |
 | EESSI CVMFS | `/cvmfs/software.eessi.io` |
 | EESSI user | `eessi` / `EESSI` |
-| Slurm shared spool | `/var/spool/slurm` |
+| Slurm state dir | `/var/spool/slurm` (per-node, local — not NFS) |
 | Slurm GPU worker | `worker04`, explicit `Gres=gpu:1`, no GPU autodetection |
 
 ## First-time preparation

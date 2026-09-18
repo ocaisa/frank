@@ -1,8 +1,8 @@
 ---
 # Slurm controller (head) and compute nodes (workers).
 #
-# The shared state save location is exported from the head and mounted on the
-# workers before this role runs (see the nfs role).
+# The state save location (slurm_state_dir) is a per-node local directory; it
+# is intentionally not shared over NFS.
 
 - name: Ensure the Slurm group has a stable GID
   ansible.builtin.group:
@@ -38,14 +38,15 @@
     groups: munge
     append: true
 
-- name: Ensure shared Slurm state directory exists (head)
+# Per-node local directory: slurmd and slurmctld each keep their own state
+# here, it is deliberately NOT shared over NFS.
+- name: Ensure the Slurm state directory exists
   ansible.builtin.file:
     path: "{{ slurm_state_dir }}"
     state: directory
     owner: "{{ slurm_user }}"
     group: "{{ slurm_group }}"
     mode: "0755"
-  when: is_head | default(false)
 
 - name: Deploy slurm.conf (head)
   ansible.builtin.template:

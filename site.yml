@@ -3,7 +3,7 @@
 #
 # Head node: controller (slurmctld), DHCP (eth0 only), squid proxy, CVMFS
 # proxy, NFS server. Head reaches the internet over Wi-Fi and NATs the LAN.
-# Workers: slurmd, NFS client (eessi home + slurm spool), CVMFS client,
+# Workers: slurmd, NFS client (shared eessi home), CVMFS client,
 # reach the internet through the head's squid proxy.
 
 - name: Configure head node (controller + infrastructure)

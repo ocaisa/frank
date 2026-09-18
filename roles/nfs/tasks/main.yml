@@ -40,7 +40,7 @@
   loop:
     - "{{ nfs_export_root }}"
     - "{{ nfs_export_root }}/home"
-    - /var/spool/slurm
+
   when: is_head | default(false)
 
 - name: Create the NFS export configuration (head)
@@ -73,7 +73,7 @@
     state: directory
   loop:
     - /nfs/home
-    - /var/spool/slurm
+
   when: not (is_head | default(false))
 
 - name: Mount the eessi home export on workers
@@ -86,15 +86,6 @@
     boot: yes
   when: not (is_head | default(false))
 
-- name: Mount the shared Slurm spool on workers
-  ansible.builtin.mount:
-    path: /var/spool/slurm
-    src: "{{ head_hostname }}:/var/spool/slurm"
-    fstype: "{{ nfs_version }}"
-    opts: "defaults,_netdev,rw"
-    state: mounted
-    boot: yes
-  when: not (is_head | default(false))
 
 # Stop a worker here instead of plowing on with a missing mount: everything
 # below (shared home, eessi user, Slurm spool) depends on these mounts.

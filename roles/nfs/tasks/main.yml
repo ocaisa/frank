@@ -229,3 +229,14 @@
     group: "{{ eessi_group }}"
     mode: "0644"
   when: is_head | default(false)
+
+# A login shell (e.g. ssh) reads ~/.profile, not ~/.bashrc; this file makes
+# logins pick up the shared .bashrc (proxy + lmod initialisation).
+- name: Install the eessi login profile that sources the shared .bashrc (head)
+  ansible.builtin.template:
+    src: eessi_profile.j2
+    dest: "{{ eessi_home }}/.profile"
+    owner: "{{ eessi_user }}"
+    group: "{{ eessi_group }}"
+    mode: "0644"
+  when: is_head | default(false)

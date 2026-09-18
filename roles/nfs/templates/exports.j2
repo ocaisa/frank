@@ -3,6 +3,6 @@
 # without one the server denies every v4 mount. The read-only / export provides
 # that root. The rw subdirectory exports below carry their own numeric fsids so
 # v4 grafts them into the tree at their full paths instead of by basename.
-{{ nfs_export_root }} {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }},fsid=0)
+/ {{ cluster_net }}/{{ cluster_netmask_prefix }}(ro,sync,no_subtree_check,fsid=0)
 {{ nfs_export_root }}/home {{ cluster_net }}/{{ cluster_netmask_prefix }}({{ nfs_options }},fsid=1)
 

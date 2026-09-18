@@ -2,6 +2,7 @@
 - name: restart cvmfs
   ansible.builtin.shell:
     cmd: |
+      {% raw %}
       set -euo pipefail
       systemctl daemon-reload
       shopt -s nullglob
@@ -9,6 +10,7 @@
       if [ ${#units[@]} -gt 0 ]; then
         systemctl restart "${units[@]}"
       fi
+      {% endraw %}
   args:
     executable: /bin/bash
   changed_when: true

@@ -1,3 +1,6 @@
 # Ansible managed: CVMFS global configuration.
-CVMFS_QUOTA_LIMIT=5000
-CVMFS_CLIENT_PROFILE="single"
+CVMFS_QUOTA_LIMIT=10000
+# Point to head node proxy with a fallback if it is not there
+CVMFS_HTTP_PROXY="http://{{ squid_listen }}:3128;DIRECT"
+# For nodes with GPU, configure a setup location to link to drivers
+EESSI_NVIDIA_OVERRIDE_DEFAULT="/cvmfs/software.eessi.io/host_injections/nvidia"

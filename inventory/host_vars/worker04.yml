@@ -6,7 +6,7 @@ worker_mac: "3c:6d:66:bf:29:f7"
 board: "Jetson Orin Nano"
 arch: arm64
 cpus: 6
-memory: 8192
+memory: 7400
 cores: 6
 threads: 1
 has_gpu: true

@@ -4,40 +4,27 @@
 
 acl cluster_net src {{ cluster_net }}/{{ cluster_netmask_prefix }}
 
-acl Safe_ports port 80 443 3128
-acl SSL_ports port 443
-acl CONNECT method CONNECT
-acl purge method PURGE
-
 http_port 127.0.0.1:3128
 http_port {{ squid_listen }}:3128
 
-cache_dir ufs {{ squid_cache_dir }} 1024 16 256
+# Destination domains that are allowed
+# cern.ch + opensciencegrid.org domains because of cvmfs-config.cern.ch repository,
+# which are provided via Stratum-1 mirror servers hosted by CERN and OSG
+acl stratum_ones dstdomain .cern.ch .opensciencegrid.org .eessi.science openhtc.io
 
-access_log /var/log/squid/access.log squid
-cache_log /var/log/squid/cache.log
-
-http_access deny purge
-http_access deny !Safe_ports
-http_access deny CONNECT !SSL_ports
-http_access allow localhost
+# Only allow access from our local machines
 http_access allow cluster_net
+http_access allow localhost
+
+# Finally, deny all other access to this proxy
 http_access deny all
 
-cache_mgr eessi@local
-visible_hostname {{ head_hostname }}
+collapsed_forwarding on
+minimum_expiry_time 0
+maximum_object_size 1024 MB
 
-maximum_object_size 512000 KB
-maximum_object_size_in_memory 51200 KB
-
-refresh_pattern ^ftp: 1440 20% 10080
-refresh_pattern ^gopher: 1440 0% 1440
-refresh_pattern -i (^http.*?/wp-admin/uploads/|.\.(pgp|gpg|sig)) 0 0% 1
-refresh_pattern . 0 40% 43200
-
-request_header_access Via deny all
-request_header_access X-Forwarded-For deny all
-forwarded_for off
-via off
-
-include /etc/squid/conf.d/*.conf
+# proxy memory cache of 1GB
+cache_mem 512 MB
+maximum_object_size_in_memory 128 KB
+# 20 GB disk cache
+cache_dir ufs {{ squid_cache_dir }} 20000 16 256

@@ -95,8 +95,10 @@ source /cvmfs/software.eessi.io/versions/2026.06/init/lmod/bash
 
 Proxy environment is configured on all nodes:
 
-- head: `http://127.0.0.1:3128`
-- workers: `http://10.0.0.1:3128`
+- head: `http://127.0.0.1:3128` (local listener)
+- workers: `http://10.0.0.1:3128` (head's LAN listener)
+
+The `eessi` user's `.bashrc` lives on the shared NFS home, so it uses the head's LAN address on every node — a per-node (loopback) address would be wrong on the workers.
 
 APT on workers is also configured to use the squid proxy. APT on the head is intentionally not proxied during the initial bootstrap because squid is not installed yet at that point.
 

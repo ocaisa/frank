@@ -176,3 +176,20 @@ sudo tail -n 100 /var/log/squid/cache.log
 - `eessi_password` is stored in plaintext in the inventory for bootstrap convenience.
 - `keys/munge.key` is generated during the first run and should be kept private.
 - This project assumes a trusted private LAN.
+
+### Head node firewall (ufw)
+
+The head's firewall is managed by the `network` role:
+
+- Default **incoming** policy: `deny`.
+- Default **routed (forward)** policy: `allow` — required because the head is the LAN's NAT gateway; without it the workers lose internet access.
+- Allowed inbound:
+  - SSH (22/tcp) from the trusted home Wi-Fi network (`admin_wifi_net`, default `192.168.1.0/24`).
+  - **Everything** arriving on the wired LAN interface (`eth0`) — this covers all cluster services (NFS, slurmctld, munge, squid, DHCP) and worker SSH, and is interface-scoped so DHCP (`DHCPDISCOVER` from `0.0.0.0`) is included.
+
+The allow rules are applied before the deny policy and before `ufw enable`, so re-running the playbook can never lock out the active SSH session. Inspect with:
+
+```bash
+sudo ufw status verbose
+```
+

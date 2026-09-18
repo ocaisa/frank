@@ -7,3 +7,4 @@ apt_use_proxy: false           # bootstrap head packages directly, not via squid
 eessi_home: /nfs/home/eessi
 slurm_packages: [slurmctld, slurm-client, munge]
 lan_netplan_backend: NetworkManager   # match the head's Wi-Fi backend
+admin_wifi_net: 192.168.1.0/24        # trusted network allowed to SSH to the head (ufw)

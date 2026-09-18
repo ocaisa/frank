@@ -7,7 +7,7 @@
 - name: Install networking packages
   ansible.builtin.apt:
     name: >-
-      {{ ['iproute2', 'netplan.io', 'iptables-persistent', 'iputils-ping']
+      {{ ['iproute2', 'netplan.io', 'iptables-persistent', 'iputils-ping', 'ufw']
          + (['network-manager'] if lan_netplan_backend | default('NetworkManager') == 'NetworkManager' else []) }}
     state: present
     update_cache: true
@@ -48,3 +48,35 @@
     name: netfilter-persistent
     state: started
     enabled: true
+
+# --- ufw firewall (head) ---
+# The head is a NAT gateway (LAN -> Wi-Fi uplink) and a service provider (NFS,
+# slurmctld, munge, squid, DHCP). Lock incoming down to admin SSH from the
+# trusted home Wi-Fi network, open the whole wired LAN, and keep forwarded
+# (routed) traffic allowed so the LAN can still reach the internet.
+#
+# Allow rules are added BEFORE "default deny incoming" and before enabling, so
+# an already-active firewall can never lock out the current SSH session.
+
+- name: Allow SSH from the home Wi-Fi network
+  ansible.builtin.command: "ufw allow from {{ admin_wifi_net }} to any port 22 proto tcp"
+  changed_when: "'Rule added' in stdout"
+
+- name: Allow all traffic arriving on the wired LAN interface
+  # Interface-scoped (not source-based) so it also covers DHCP, whose
+  # DHCPDISCOVER is broadcast from 0.0.0.0 and would miss a "from 10.0.0.0/24"
+  # rule. Supersedes the per-service port rules and the LAN SSH rule.
+  ansible.builtin.command: "ufw allow in on {{ head_lan_iface }} to any"
+  changed_when: "'Rule added' in stdout"
+
+- name: Set ufw default incoming policy to deny
+  ansible.builtin.command: ufw default deny incoming
+  changed_when: "'changed to' in stdout"
+
+- name: Set ufw default routed (forward) policy to allow (head is a NAT gateway)
+  ansible.builtin.command: ufw default allow routed
+  changed_when: "'changed to' in stdout"
+
+- name: Enable ufw (non-interactive)
+  ansible.builtin.command: ufw --force enable
+  changed_when: "'already active' not in stdout"
